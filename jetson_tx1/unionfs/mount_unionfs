@@ -1,0 +1,37 @@
+#!/bin/sh
+DIR="$1"
+[ -z "${DIR}" ] && exit 1
+
+PATH=/usr/local/bin:/bin:/sbin:/usr/bin:/usr/sbin:$PATH
+
+if ! grep -q fuse /proc/filesystems; then
+  echo "Filesystem unionfs-fuse is unavailable.
+  exit 1
+fi
+modprobe fuse
+
+FUSE_OPTS="-o default_permissions -o allow_other -o use_ino -o noempty -o suid"
+UNION_OPTS="-o cow"
+
+UPATH="/removable"
+UBIN="/usr/bin/unionfs-fuse"
+
+ulimit -n 16384
+
+unionmount_rw(){
+  local dir=$1
+  local upper="${UPATH}/overlay/${dir}=RW"
+  local bottom="${UPATH}/master/${dir}=RO"
+
+  mount -n --bind "${dir}" "${UPATH}/master/${dir}"
+  ${UBIN} ${FUSE_OPT} ${UNION_OPT} ${upper}:${bottom} "${UPATH}/union/${dir}"
+  mount -n --bind "${UPATH}/union/${dir} "${dir}"
+}
+
+unionmount_ro(){
+  local dir=$1
+  unionmount_rw "${dir}"
+  mount -o remount,ro "${dir}"
+}
+
+unionmount_rw ${DIR}
