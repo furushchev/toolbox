@@ -63,7 +63,7 @@ start on filesystem and started docker
 stop on runlevel [!2345]
 respawn
 script
-  exec docker run --volumes-from ovpn-data --rm -p $PORT:1194/$PROTO --cap-add=NET_ADMIN kylemanna/openvpn
+  exec docker run -v $OVPN_DATA:/etc/openvpn --rm -p $PORT:1194/$PROTO --cap-add=NET_ADMIN kylemanna/openvpn
 end script
 EOF
 }
