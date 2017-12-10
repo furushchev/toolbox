@@ -6,9 +6,13 @@
 import httplib2
 import os
 
-import apiclient
-import oauth2client.client
-import oauth2client.file
+try:
+    import apiclient
+    import oauth2client.client
+    import oauth2client.file
+except:
+    print "run 'sudo pip install --upgrade google-api-python-client'"
+    exit(1)
 
 try:
     input = raw_input
@@ -45,9 +49,9 @@ def get_drive_service(credential_path=None):
 
 def _get_children_folders(service, folder_id, depth, max_depth):
     if max_depth >= 0 and depth > max_depth:
-        return list()
+        return
     page_token = None
-    folders = [folder_id]
+    yield folder_id
     queries = ["'%s' in parents" % folder_id,
                "trashed=false",
                "mimeType='application/vnd.google-apps.folder'"]
@@ -58,18 +62,15 @@ def _get_children_folders(service, folder_id, depth, max_depth):
             fields="nextPageToken, files(id)",
             pageToken=page_token).execute()
         for e in res.get("files", list()):
-            try:
-                children = _get_children_folders(service, e.get("id"), depth+1, max_depth)
-                folders += children
-            except:
-                pass
+            for fid in _get_children_folders(service, e.get("id"), depth+1, max_depth):
+                yield fid
         if page_token is None:
             break
-    return list(set(folders))
 
 
-def get_children_folders(service, folder_id, max_depth=-1):
-    return _get_children_folders(service, folder_id, 0, max_depth)
+def get_children_folders(service, folder_id, max_depth):
+    for fid in _get_children_folders(service, folder_id, 0, max_depth):
+        yield fid
 
 
 def get_children_files(service, folder_id):
@@ -84,10 +85,11 @@ def get_children_files(service, folder_id):
             spaces="drive",
             fields="nextPageToken, files(id)",
             pageToken=page_token).execute()
-        files += [f.get("id") for f in res.get("files", list())]
+        for f in res.get("files"):
+            yield f.get("id")
         if page_token is None:
             break
-    return files
+
 
 
 def get_file_id(service, name, folder_only=False, file_only=False):
@@ -167,17 +169,10 @@ def main():
     folder_id = get_file_id(service, args.folder)
     print "selected folder id: %s" % folder_id
 
-    folders = get_children_folders(service, folder_id, max_depth=args.depth)
-    folder_num = len(folders)
-
-    print "found %d child folders" % folder_num
-
-    for i, foid in enumerate(folders):
-        files = get_children_files(service, foid)
-        print "[%d/%d] folder %s has %d files" % (i, folder_num, foid, len(files))
-        for fid in files:
-            revoke_permission(service, fid)
+    for i, foid in enumerate(get_children_folders(service, folder_id, max_depth=args.depth)):
         revoke_permission(service, foid)
+        for fiid in get_children_files(service, foid):
+            revoke_permission(service, fiid)
 
     print "Done!"
 
