@@ -8,44 +8,78 @@ import re
 import subprocess as sp
 import time
 from tqdm import tqdm
+from threading import Thread
 import sys
+try:
+    from Queue import Queue, Empty
+except:
+    from queue import Queue, Empty
+
+
+REGEX = re.compile(r"^([0-9]+/[0-9]+)$")
+POSIX = 'posix' in sys.builtin_module_names
+
+
+def read(fp, queue):
+    def _qput(_f, _q):
+        for _l in iter(_f.readline, b''):
+            _q.put(_l)
+        _f.close()
+    t = Thread(target=_qput, args=(fp, queue))
+    t.daemon = True
+    t.start()
+    return t
+    
+
+
+def run(cmd):
+    proc = sp.Popen(cmd,
+                    stdout=sp.PIPE, stderr=sp.PIPE,
+                    bufsize=1, close_fds=POSIX)
+    queue = Queue()
+    tout = read(proc.stdout, queue)
+    terr = read(proc.stderr, queue)
+
+    with tqdm(total=100) as bar:
+        bar.desc = cmd[0]
+        while proc.poll() is None:
+            try:
+                progress = queue.get_nowait().split()
+                progress = filter(REGEX.match, progress)
+                cur, total = progress[0].split('/')
+                perc = int(float(cur) / float(total) * 100)
+                bar.update(perc - bar.pos)
+            except Empty:
+                pass
+            except:
+                try:
+                    bar.desc = progress[1]
+                except:
+                    pass
+            finally:
+                time.sleep(0.1)
+
+    print "'%s' exited with code %d" % (' '.join(cmd), p.poll())
+    if p.poll() != 0:
+        proc.stderr.seek(0)
+        print proc.stderr.read()
+    return proc.poll()
 
 
 def dump(addr, port, out, db=None, col=None):
     Path(out).mkdir(parents=True, exist_ok=True)
-    regex = re.compile(r"^([0-9]+/[0-9]+)$")
-
     cmd = ['mongodump', '--verbose', '--out', out, "--host", addr, "--port", str(port)]
     if db:
         cmd += ['--db', db]
     if col:
         cmd += ['--collection', col]
 
-    p = sp.Popen(cmd, stdout=sp.PIPE)
-    with tqdm(total=100) as bar:
-        prev_perc = 0
-        while p.poll() is None:
-            progress = p.stdout.readline().split()
-            progress = filter(regex.match, progress)
-            if progress:
-                cur, total = progress[0].split('/')
-                perc = int(float(cur) / float(total) * 100)
-                diff = perc - prev_perc
-                if diff > 0:
-                    bar.update(perc - prev_perc)
-                prev_perc = perc
-            time.sleep(0.1)
-
-    print "mongodump exited with code %d" % p.poll()
-    return p.poll() == 0
+    return run(cmd) == 0
 
 
 def restore(dump_path, db=None, col=None):
     if not Path(dump_path).exists():
         raise OSError("dump path %s not found" % dump_path)
-
-    regex = re.compile(r"^([0-9]+/[0-9]+)$")
-
     cmd = ["mongorestore", "--verbose"]
     if db:
         cmd += ['--db', db]
@@ -54,23 +88,7 @@ def restore(dump_path, db=None, col=None):
 
     cmd += [dump_path]
 
-    p = sp.Popen(cmd, stdout=sp.PIPE)
-    with tqdm(total=100) as bar:
-        prev_perc = 0
-        while p.poll() is None:
-            progress = p.stdout.readline().split()
-            progress = filter(regex.match, progress)
-            if progress:
-                cur, total = progress[0].split('/')
-                perc = int(float(cur) / float(total) * 100)
-                diff = perc - prev_perc
-                if diff > 0:
-                    bar.update(perc - prev_perc)
-                prev_perc = perc
-            time.sleep(0.1)
-
-    print "mongorestore exited with code %d" % p.poll()
-    return p.poll() == 0
+    return run(cmd) == 0
 
 
 if __name__ == '__main__':
