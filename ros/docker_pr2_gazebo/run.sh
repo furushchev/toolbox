@@ -1,3 +1,18 @@
 #!/bin/bash
-docker build -t furushchev/pr2eus_tutorials .
-docker run --name test --rm -e ROS_DISPLAY -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix:rw --net=host pr2eus_tutorials rosrun pr2eus_tutorials pr2_tabletop_sim.sh  run_rviz:=false --screen
+
+xhost +local:root
+
+docker run \
+    --name test \
+    --rm \
+    --net=host \
+    --env="DISPLAY" \
+    --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+    furushchev/pr2eus_tutorials:latest \
+    rqt
+#    roslaunch pr2_gazebo pr2_empty_world.launch KINECT1:=true gui:=false paused:=false
+#    rosrun pr2eus_tutorials pr2_tabletop_sim.sh gui:=false run_rviz:=false --screen
+
+#    -e QT_X11_NO_MITSHM=1 \
+
+xhost -local:root
