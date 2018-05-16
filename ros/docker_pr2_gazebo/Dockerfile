@@ -1,10 +1,15 @@
 FROM osrf/ros:kinetic-desktop-full
 MAINTAINER Yuki Furuta <furushchev@jsk.imi.i.u-tokyo.ac.jp>
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN sed -i 's@packages.ros.org/ros@packages.ros.org/ros-shadow-fixed@g' /etc/apt/sources.list.d/ros-latest.list
 
 RUN apt-get update && apt-get install -y -yy -q \
+    mesa-utils \
+    libgl1-mesa-glx \
     xvfb \
+    xserver-xorg-video-dummy \
     python-catkin-tools \
     python-wstool \
     ros-kinetic-eusurdf \
