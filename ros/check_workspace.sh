@@ -45,7 +45,8 @@ check_workspace() {
 
   for PKG in $PKGS; do
     CUR_TAG=$(cd $PKG && git describe --tags --abbrev=0)
-    LATEST_TAG=$(cd $PKG && git fetch origin 2>&1 1>/dev/null && git describe --tags "`git rev-list --tags --max-count=1`")
+    (cd $PKG && git fetch origin 2>&1 1>/dev/null)
+    LATEST_TAG=$(cd $PKG && git tag | grep -e '^[0-9.]*$' | sort -Vr | head -n1)
     if [ "$CUR_TAG" != "$LATEST_TAG" ]; then
       prompt warn "Package $PKG -> Current $CUR_TAG / Latest $LATEST_TAG"
       read -p "Change to latest? [y/n]: " YN
