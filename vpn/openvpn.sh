@@ -1,6 +1,7 @@
 #!/bin/bash
 
 OVPN_DATA="ovpn-data"
+TAG=2.4
 
 prompt() {
   level="$1"
@@ -63,7 +64,7 @@ start on filesystem and started docker
 stop on runlevel [!2345]
 respawn
 script
-  exec docker run -v $OVPN_DATA:/etc/openvpn --rm -p $PORT:1194/$PROTO --cap-add=NET_ADMIN kylemanna/openvpn
+  exec docker run -v $OVPN_DATA:/etc/openvpn --rm -p $PORT:1194/$PROTO --cap-add=NET_ADMIN kylemanna/openvpn:$TAG
 end script
 EOF
 }
@@ -106,9 +107,9 @@ ovpn_init() {
 
   docker volume create --name $OVPN_DATA
   trap error_handler ERR
-  docker run -v $OVPN_DATA:/etc/openvpn --rm kylemanna/openvpn ovpn_genconfig -u $PROTO://$OVPN_HOSTNAME:${PORT}
-  docker run -v $OVPN_DATA:/etc/openvpn --rm -it kylemanna/openvpn ovpn_initpki
-  docker run -v $OVPN_DATA:/etc/openvpn -d -p ${PORT}:1194/${PROTO} --cap-add=NET_ADMIN kylemanna/openvpn
+  docker run -v $OVPN_DATA:/etc/openvpn --rm kylemanna/openvpn:$TAG ovpn_genconfig -u $PROTO://$OVPN_HOSTNAME:${PORT} -b
+  docker run -v $OVPN_DATA:/etc/openvpn --rm -it kylemanna/openvpn:$TAG ovpn_initpki
+  docker run -v $OVPN_DATA:/etc/openvpn -d -p ${PORT}:1194/${PROTO} --cap-add=NET_ADMIN kylemanna/openvpn:$TAG
   prompt info "OpenVPN Server container started"
   prompt info "If you want to register OpenVPN server as startup service,"
   prompt info "Put upstart script to appropriate path (e.g. /etc/init/docker-openvpn.conf ):"
@@ -116,7 +117,7 @@ ovpn_init() {
 }
 
 ovpn_list() {
-  docker run --rm -it -v $OVPN_DATA:/etc/openvpn kylemanna/openvpn ovpn_listclients
+  docker run --rm -it -v $OVPN_DATA:/etc/openvpn kylemanna/openvpn:$TAG ovpn_listclients
 }
 
 ovpn_add() {
@@ -133,8 +134,8 @@ ovpn_add() {
     exit 1
   fi
 
-  docker run -v $OVPN_DATA:/etc/openvpn --rm -it kylemanna/openvpn easyrsa build-client-full $CLIENTNAME nopass
-  docker run -v $OVPN_DATA:/etc/openvpn --rm kylemanna/openvpn ovpn_getclient $CLIENTNAME > "${CLIENTNAME}.ovpn"
+  docker run -v $OVPN_DATA:/etc/openvpn --rm -it kylemanna/openvpn:$TAG easyrsa build-client-full $CLIENTNAME nopass
+  docker run -v $OVPN_DATA:/etc/openvpn --rm kylemanna/openvpn:$TAG ovpn_getclient $CLIENTNAME > "${CLIENTNAME}.ovpn"
   prompt info "Created client configuration file: ${CLIENTNAME}.ovpn"
 }
 
@@ -152,7 +153,7 @@ ovpn_remove() {
     exit 1
   fi
 
-  docker run --rm -it -v $OVPN_DATA:/etc/openvpn kylemanna/openvpn ovpn_revokeclient $CLIENTNAME remove
+  docker run --rm -it -v $OVPN_DATA:/etc/openvpn kylemanna/openvpn:$TAG ovpn_revokeclient $CLIENTNAME remove
 }
 
 exec_command() {
