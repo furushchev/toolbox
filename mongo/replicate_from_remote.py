@@ -24,12 +24,10 @@ def read(fp, queue):
     def _qput(_f, _q):
         for _l in iter(_f.readline, b''):
             _q.put(_l)
-        _f.close()
     t = Thread(target=_qput, args=(fp, queue))
     t.daemon = True
     t.start()
     return t
-    
 
 
 def run(cmd):
@@ -59,9 +57,9 @@ def run(cmd):
             finally:
                 time.sleep(0.1)
 
-    print "'%s' exited with code %d" % (' '.join(cmd), p.poll())
-    if p.poll() != 0:
-        proc.stderr.seek(0)
+    print "'%s' exited with code %d" % (' '.join(cmd), proc.poll())
+    if proc.poll() != 0:
+        # proc.stderr.seek(0)
         print proc.stderr.read()
     return proc.poll()
 
