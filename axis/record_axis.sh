@@ -18,6 +18,15 @@ record_axis_help() {
   echo "    --dry-run: echo command instead of execute"
 }
 
+check_package() {
+  local pkg=$1
+  dpkg -s $pkg &>/dev/null
+  if [ $? -ne 0 ]; then
+    echo "$pkg is not yet installed."
+    return 1
+  fi
+  return 0
+}
 
 record_axis() {
   SOUP_OPTION="is-live=true"
@@ -102,4 +111,10 @@ record_axis() {
        splitmuxsink location="${OUT}_%05d.mp4" max-size-time=${max_size_time} max-files=${MAX_FILE} muxer=mp4mux
 }
 
-record_axis $@
+if  check_package gstreamer1.0-tools &&
+    check_package gstreamer1.0-plugins-good &&
+    check_package gstreamer1.0-plugins-base &&
+    check_package gstreamer1.0-plugins-ugly &&
+    check_package gstreamer1.0-plugins-bad; then
+  record_axis $@
+fi
