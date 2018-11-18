@@ -8,6 +8,8 @@ var res = db.pr1012.aggregate([
                 "_meta.stored_type": 1}},
   {"$group": {"_id": "$_meta.stored_type",
               "count": {"$sum": 1}}}
-  ])
+  ], {
+    allowDiskUse: true
+  })
 
 printjson(res);
