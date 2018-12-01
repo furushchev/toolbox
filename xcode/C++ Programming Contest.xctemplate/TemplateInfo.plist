@@ -133,8 +133,9 @@ int main(int argc, const char * argv[]) {
 
     if (is_test_mode) {
       ifstream ifs( test_file_name + &quot;.in&quot; );
-      ofstream ofs( test_file_name + &quot;.out&quot; );
-      return solve(argc, argv, ifs, ofs);
+      // ofstream ofs( test_file_name + &quot;.out&quot; );
+      // return solve(argc, argv, ifs, ofs);
+      return solve(argc, argv, ifs, cout);
     } else {
       return solve(argc, argv, cin, cout);
     }
