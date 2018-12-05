@@ -1,0 +1,11 @@
+#!/bin/sh
+
+INITBIN=$(readlink -f /sbin/init)
+
+if [ "$INITBIN" = "/usr/sbin/unionfs-init" ]; then
+  (cd /oldroot/sbin/ && sudo ln -sf /lib/systemd/systemd init)
+  echo "UnionFS will be disabled on the next boot."
+else
+  (cd /sbin && sudo ln -sf /usr/sbin/unionfs-init init)
+  echo "UnionFS will be enabled on the next boot."
+fi

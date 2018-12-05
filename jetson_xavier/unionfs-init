@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# Copyright: Bernd Schubert <bernd.schubert@fastmail.fm>
+# BSD license, see LICENSE file for details
+# 
+# Modified by furushchev <furushchev@jsk.imi.i.u-tokyo.ac.jp>
+#
+
+OVERLAY_DRIVE="/dev/nvme0n1"
+CHROOT_PATH="/unionfs"
+MASTER="${CHROOT_PATH}/master"
+OVERLAY="${CHROOT_PATH}/overlay"
+ENDPOINT="${CHROOT_PATH}/union"
+
+INITBIN=/lib/systemd/systemd
+UBIN=/usr/bin/unionfs-fuse
+FUSE_OPT="-o allow_other -o use_ino -o suid -o dev -o nonempty"
+UNION_OPT="-o cow -o chroot=${CHROOT_PATH} -o max_files=32768 -o auto_unmount"
+EXT4_OPT="-o defaults -o errors=remount-ro -o discard"
+
+modprobe fuse
+
+mount -t proc proc /proc
+mount -t tmpfs tmpfs /tmp
+
+mkdir -p ${CHROOT_PATH}
+mount -t ext4 ${EXT4_OPT} ${OVERLAY_DRIVE} ${CHROOT_PATH}
+mkdir -p ${MASTER} ${OVERLAY} ${ENDPOINT}
+
+mount -n --bind / ${MASTER}
+
+${UBIN} ${FUSE_OPT} ${UNION_OPT} /overlay=RW:/master=RO ${ENDPOINT}
+
+for m in sys proc tmp dev run; do
+  mount --move /$m ${ENDPOINT}/$m
+done
+
+cd ${ENDPOINT}
+mkdir oldroot
+pivot_root . oldroot
+
+omit_pid() {
+  # don't kill unionfs-fuse
+  dir=/lib/init/rw/sendsigs.omit.d
+  [ ! -d $dir ] || omitdir=$dir
+  dir=/var/run/sendsigs.omit.d
+  [ ! -d $dir ] || omitdir=$dir
+
+  if [ -n "$omitdir" ]; then
+    for i in `ps ax |grep unionfs | grep -v grep | awk '{print $1}'`; do 
+      echo $i >${omitdir}/unionfs.$i; 
+    done
+  fi
+}
+
+omit_pid
+
+exec ${INITBIN} "$@"
+
