@@ -2,6 +2,7 @@ version: '3'
 services:
   mongo-primary:
     image: "mongo:${MONGO_VERSION}"
+    command: "--config /etc/mongod.conf"
     restart: always
     stop_signal: SIGINT
     stop_grace_period: 5m
@@ -9,9 +10,10 @@ services:
       - "${MONGO_PRIMARY_PORT}:27017"
     volumes:
       - "${MONGO_PRIMARY_DB_PATH}:/data/db"
-      - "${MONGO_CONF_PATH}:/etc/mongod.conf:ro"
+      - "${MONGO_PRIMARY_CONF_PATH}:/etc/mongod.conf:ro"
   mongo-secondary:
     image: "mongo:${MONGO_VERSION}"
+    command: "--config /etc/mongod.conf"
     restart: always
     stop_signal: SIGINT
     stop_grace_period: 5m
@@ -21,7 +23,7 @@ services:
       - "${MONGO_SECONDARY_PORT}:27017"
     volumes:
       - "${MONGO_SECONDARY_DB_PATH}:/data/db"
-      - "${MONGO_CONF_PATH}:/etc/mongod.conf:ro"
+      - "${MONGO_SECONDARY_CONF_PATH}:/etc/mongod.conf:ro"
   mongo-arbiter:
     image: "mongo:${MONGO_VERSION}"
     restart: always
