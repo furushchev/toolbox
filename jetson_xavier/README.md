@@ -4,6 +4,8 @@
 
 2. Format SSD Drive as ext4
 
+Ensure `/dev/nvme0n1p1` is visible on your tegra device.
+
 3. Install scripts
 
 ```bash

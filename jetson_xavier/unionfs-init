@@ -2,11 +2,11 @@
 
 # Copyright: Bernd Schubert <bernd.schubert@fastmail.fm>
 # BSD license, see LICENSE file for details
-# 
+#
 # Modified by furushchev <furushchev@jsk.imi.i.u-tokyo.ac.jp>
 #
 
-OVERLAY_DRIVE="/dev/nvme0n1"
+OVERLAY_DRIVE="/dev/nvme0n1p1"
 CHROOT_PATH="/unionfs"
 MASTER="${CHROOT_PATH}/master"
 OVERLAY="${CHROOT_PATH}/overlay"
@@ -18,6 +18,7 @@ FUSE_OPT="-o allow_other -o use_ino -o suid -o dev -o nonempty"
 UNION_OPT="-o cow -o chroot=${CHROOT_PATH} -o max_files=32768 -o auto_unmount"
 EXT4_OPT="-o defaults -o errors=remount-ro -o discard"
 
+modprobe ext4
 modprobe fuse
 
 mount -t proc proc /proc
@@ -47,8 +48,8 @@ omit_pid() {
   [ ! -d $dir ] || omitdir=$dir
 
   if [ -n "$omitdir" ]; then
-    for i in `ps ax |grep unionfs | grep -v grep | awk '{print $1}'`; do 
-      echo $i >${omitdir}/unionfs.$i; 
+    for i in `ps ax |grep unionfs | grep -v grep | awk '{print $1}'`; do
+      echo $i >${omitdir}/unionfs.$i
     done
   fi
 }
@@ -56,4 +57,3 @@ omit_pid() {
 omit_pid
 
 exec ${INITBIN} "$@"
-
