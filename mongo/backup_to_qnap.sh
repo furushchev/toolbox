@@ -25,5 +25,5 @@ else
     fi
 fi
 
-exec rsync -auvhP /media/mongo/mongodb_store /media/qnap/
+exec rsync -auvhP /media/mongo2/mongodb_store /media/qnap/
 rm -f $PIDFILE
